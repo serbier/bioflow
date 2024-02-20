@@ -180,6 +180,7 @@ mod_getData_ui <- function(id){
         ),
 
       ),
+### Genotypic ui components #################################################
       tabPanel(
         title = 'Genotypic',
         value = ns('tab2'),
@@ -191,9 +192,9 @@ mod_getData_ui <- function(id){
           selectInput(
             inputId = ns('geno_input'),
             label   = 'Genotypic SNPs Source*:',
-            choices = list('HapMap Upload' = 'file', 'HapMap URL' = 'url',
-                           'Table Upload' = 'matfile', 'Table URL' = 'matfileurl',
-                           'VCF Upload' = 'vcf.file', 'VCF URL' = 'vcf.url'),
+            choices = list('Tabular' = 'tabular',
+                           'VCF' = 'vcf',
+                           'Plink' = 'plink'),
             width   = '200px'
           ),
           tags$span(id = ns('geno_file_holder'),
@@ -211,49 +212,56 @@ mod_getData_ui <- function(id){
             width   = '400px',
             placeholder = 'https://example.com/path/file.gz'
           ),
-          hr(style = "border-top: 1px solid #4c4c4c;"),
-          tags$span(id = ns('geno_table_mapping'),
-                    column(4,
-                           selectizeInput(
-                             inputId = ns('geno_table_designation'),
-                             label   = 'Designation column: ',
-                             choices = list()
-                           ),    ),
-                    column(4,
-                           selectizeInput(
-                             inputId = ns('geno_table_firstsnp'),
-                             label   = 'First SNP column: ',
-                             choices = list()
-                           ),   ),
-                    column(4,
-                           selectizeInput(
-                             inputId = ns('geno_table_lastsnp'),
-                             label   = 'Last SNP column: ',
-                             choices = list()
-                           ),
-                    ),
-          ),
-          tags$div(id = ns('geno_table_options'),
-                   shinydashboard::box(title = span(icon('screwdriver-wrench'), ' Options'), collapsible = TRUE, collapsed = TRUE, status = 'success', solidHeader = TRUE,
-                                       shinyWidgets::prettyRadioButtons(ns('geno_sep'), 'Separator Character', selected = ',', inline = TRUE,
-                                                                        choices = c('Comma' = ',', 'Semicolon' = ';', 'Tab' = "\t")),
-
-                                       shinyWidgets::prettyRadioButtons(ns('geno_quote'), 'Quoting Character', selected = '"', inline = TRUE,
-                                                                        choices = c('None' = '', 'Double Quote' = '"', 'Single Quote' = "'")),
-
-                                       shinyWidgets::prettyRadioButtons(ns('geno_dec'), 'Decimal Points', selected = '.', inline = TRUE,
-                                                                        choices = c('Dot' = '.', 'Comma' = ',')),
-                   ),
-          ),
-          if (!is.null(geno_example)) {
-            checkboxInput(
-              inputId = ns('geno_example'),
-              label = span('Load example ',
-                           a('genotypic data', target = '_blank',
-                             href = geno_example)),
-              value = FALSE
-            )
-          },
+          # textInput(
+          #   inputId = ns('geno_url'),
+          #   label   = NULL,
+          #   value   = '',
+          #   width   = '400px',
+          #   placeholder = 'https://example.com/path/file.gz'
+          # ),
+          # hr(style = "border-top: 1px solid #4c4c4c;"),
+          # tags$span(id = ns('geno_table_mapping'),
+          #           column(4,
+          #                  selectizeInput(
+          #                    inputId = ns('geno_table_designation'),
+          #                    label   = 'Designation column: ',
+          #                    choices = list()
+          #                  ),    ),
+          #           column(4,
+          #                  selectizeInput(
+          #                    inputId = ns('geno_table_firstsnp'),
+          #                    label   = 'First SNP column: ',
+          #                    choices = list()
+          #                  ),   ),
+          #           column(4,
+          #                  selectizeInput(
+          #                    inputId = ns('geno_table_lastsnp'),
+          #                    label   = 'Last SNP column: ',
+          #                    choices = list()
+          #                  ),
+          #           ),
+          # ),
+          # tags$div(id = ns('geno_table_options'),
+          #          shinydashboard::box(title = span(icon('screwdriver-wrench'), ' Options'), collapsible = TRUE, collapsed = TRUE, status = 'success', solidHeader = TRUE,
+          #                              shinyWidgets::prettyRadioButtons(ns('geno_sep'), 'Separator Character', selected = ',', inline = TRUE,
+          #                                                               choices = c('Comma' = ',', 'Semicolon' = ';', 'Tab' = "\t")),
+          #
+          #                              shinyWidgets::prettyRadioButtons(ns('geno_quote'), 'Quoting Character', selected = '"', inline = TRUE,
+          #                                                               choices = c('None' = '', 'Double Quote' = '"', 'Single Quote' = "'")),
+          #
+          #                              shinyWidgets::prettyRadioButtons(ns('geno_dec'), 'Decimal Points', selected = '.', inline = TRUE,
+          #                                                               choices = c('Dot' = '.', 'Comma' = ',')),
+          #          ),
+          # ),
+          # if (!is.null(geno_example)) {
+          #   checkboxInput(
+          #     inputId = ns('geno_example'),
+          #     label = span('Load example ',
+          #                  a('genotypic data', target = '_blank',
+          #                    href = geno_example)),
+          #     value = FALSE
+          #   )
+          # },
 
           fluidRow(
             style = 'padding-right: 0px; padding-left: 0px;',
@@ -1016,260 +1024,260 @@ mod_getData_server <- function(id, map = NULL, data = NULL, res_auth=NULL){
     output$outConcatenateEnv <- renderPrint({
       outConcatenateEnv()
     })
-    ### Genotypic tab controls #################################################
-
-    observeEvent(
-      input$geno_input,
-      if(length(input$geno_input) > 0){ # added
-        if (input$geno_input %in% c('file', 'vcf.file')) {
-          golem::invoke_js('showid', ns('geno_file_holder'))
-          golem::invoke_js('hideid', ns('geno_url'))
-          golem::invoke_js('hideid', ns('geno_table_mapping'))
-          golem::invoke_js('hideid', ns('geno_table_options'))
-          updateCheckboxInput(session, 'geno_example', value = FALSE)
-        } else if (input$geno_input %in% c('url', 'vcf.url')) {
-          golem::invoke_js('hideid', ns('geno_file_holder'))
-          golem::invoke_js('hideid', ns('geno_table_mapping'))
-          golem::invoke_js('hideid', ns('geno_table_options'))
-          golem::invoke_js('showid', ns('geno_url'))
-        } else if (input$geno_input == 'matfile' ){
-          golem::invoke_js('showid', ns('geno_file_holder'))
-          golem::invoke_js('showid', ns('geno_table_mapping'))
-          golem::invoke_js('showid', ns('geno_table_options'))
-          golem::invoke_js('hideid', ns('geno_url'))
-          updateCheckboxInput(session, 'geno_example', value = FALSE)
-        } else if (input$geno_input == 'matfileurl' ){
-          golem::invoke_js('hideid', ns('geno_file_holder'))
-          golem::invoke_js('showid', ns('geno_table_mapping'))
-          golem::invoke_js('showid', ns('geno_table_options'))
-          golem::invoke_js('showid', ns('geno_url'))
-        }
-      }
-    )
-
-    geno_data_table = reactive({ # function to purely just read a csv when we need to match the genotype file
-      if(length(input$geno_input) > 0){ # added
-        if (input$geno_input == 'matfile' ) {
-          if (is.null(input$geno_file)) {return(NULL)}else{
-            snps_file <- input$geno_file$datapath
-          }
-        } else if(input$geno_input == 'matfileurl'){
-          if (is.null(input$geno_file)) {return(NULL)}else{
-            snps_file <- input$geno_url
-          }
-        }else {
-          return(NULL);
-        }
-        shinybusy::show_modal_spinner('fading-circle', text = 'Loading...')
-        df <- as.data.frame(data.table::fread(snps_file, sep = input$geno_sep, quote = input$geno_quote, dec = input$geno_dec, header = TRUE))
-        shinybusy::remove_modal_spinner()
-        return(df)
-      }else{
-        return(NULL)
-      }
-    })
-
-    observeEvent(c(geno_data_table()), { # update values for columns in designation and first snp and last snp
-      req(geno_data_table())
-      provGeno <- geno_data_table()
-      output$preview_geno <- DT::renderDT({
-        req(geno_data_table())
-        DT::datatable(geno_data_table()[,1:min(c(50,ncol(geno_data_table())))],
-                      extensions = 'Buttons',
-                      options = list(dom = 'Blfrtip',scrollX = TRUE,buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),lengthMenu = list(c(5,20,50,-1), c(5,20,50,'All')))
-        )
-      })
-      updateSelectizeInput(session, "geno_table_firstsnp", choices = colnames(provGeno)[1:min(c(ncol(provGeno),100))], selected = character(0))
-      updateSelectizeInput(session, "geno_table_lastsnp", choices = colnames(provGeno)[max(c(1,ncol(provGeno)-100)):ncol(provGeno)], selected = character(0))
-      updateSelectizeInput(session, "geno_table_designation", choices = colnames(provGeno)[1:min(c(ncol(provGeno),100))], selected = character(0))
-    })
-
-    observeEvent( # reactive for the csv geno read, active once the user has selected the proper columns
-      c(geno_data_table(), input$geno_table_firstsnp, input$geno_table_lastsnp, input$geno_table_designation),
-      {
-        req(geno_data_table())
-        req(input$geno_table_firstsnp)
-        req(input$geno_table_lastsnp)
-        req(input$geno_table_designation)
-        if(!is.null(input$geno_table_firstsnp) & !is.null(input$geno_table_lastsnp) & !is.null(input$geno_table_designation) ){
-          temp <- data()
-          tempG <- geno_data_table()
-          rownames(tempG) <- tempG[,which(colnames(tempG)==input$geno_table_designation)]
-          tempG <- tempG[,which(colnames(tempG)==input$geno_table_firstsnp):which(colnames(tempG)==input$geno_table_lastsnp)]
-          missingData=c("NN","FAIL","FAILED","Uncallable","Unused","NA","")
-          for(iMiss in missingData){tempG[which(tempG==iMiss, arr.ind = TRUE)] <- NA}
-          shinybusy::show_modal_spinner('fading-circle', text = 'Converting...')
-          tempG <- sommer::atcg1234(tempG, maf = -1, imp = FALSE)
-          shinybusy::remove_modal_spinner()
-          temp$data$geno <- tempG$M
-          refAlleles <- tempG$ref.alleles
-          map <- data.frame(a=colnames(tempG$M), chrom=1, pos=1:ncol(tempG$M))
-          map$refAllele <- tempG$ref.alleles[2,]
-          map$altAllele <- tempG$ref.alleles[1,]
-          colnames(map) <- c('marker', 'chr', 'pos', 'refAllele', 'altAllele')
-          temp$metadata$geno <- map
-          data(temp)
-        }else{return(NULL)}
-      }
-    )
-
-    geno_data <- reactive({
-      if(length(input$geno_input) > 0){ # added
-        if (input$geno_input %in% c('file', 'vcf.file')) {
-          if (is.null(input$geno_file)) {return(NULL)}else{
-            snps_file <- input$geno_file$datapath
-          }
-        } else if (input$geno_input %in% c('url', 'vcf.url')) {
-          if (input$geno_url == '') {return(NULL)}else{
-            snps_file <- input$geno_url
-          }
-        } else {
-          return(NULL)
-        }
-
-        # library(vcfR); vcf_data <- vcfR::read.vcfR(snps_file); hmp_data <- vcfR::vcfR2hapmap(vcf.data)
-
-        shinybusy::show_modal_spinner('fading-circle', text = 'Loading...')
-        if (input$geno_input %in% c('file', 'url')) {
-          df <- as.data.frame(data.table::fread(snps_file, sep = '\t', header = TRUE))
-
-        } else if (input$geno_input %in% c('vcf.file', 'vcf.url')) {
-          vcf.data  <- vcfR::read.vcfR(snps_file)
-
-          df <- vcfR::vcfR2hapmap(vcf.data)
-          df <- df[-1,]
-
-          rm(vcf.data)
-        }
-
-        shinybusy::remove_modal_spinner()
-
-        hapmap_snp_attr <- c('rs#', 'alleles', 'chrom', 'pos', 'strand', 'assembly#',
-                             'center', 'protLSID', 'assayLSID', 'panelLSID', 'QCcode',
-                             'rs', 'assembly','panel' # column versions of vcfR
-        )
-        if(length(intersect(hapmap_snp_attr, colnames(df)[1:11])) != 11){
-          # if (!all(colnames(df)[1:11] == hapmap_snp_attr)) {
-          shinyWidgets::show_alert(title = 'Error !!', text = 'Not a valid HapMap file format :-(', type = 'error')
-          return(NULL)
-        }
-        colnames(df)[1:11] <- hapmap_snp_attr[1:11]
-        first_row   <- df[1, -c(1:11)]
-        valid_IUPAC <- c('A', 'C', 'G', 'T', 'U', 'W', 'S', 'M', 'K', 'R', 'Y', 'B', 'D', 'H', 'V', 'N')
-        double_code <- c("AA","TT","CC","GG","AT","TA","AC","CA","AG","GA","TC","CT","TG","GT","CG","GC","NN")
-        # IUPAC single-letter code
-        if (all(first_row %in% valid_IUPAC)) {
-
-          shinybusy::show_modal_spinner('fading-circle', text = 'Converting...')
-          df <- hapMapChar2Numeric(df)
-          shinybusy::remove_modal_spinner()
-
-          # -1, 0, 1 numeric coding
-        } else if (min(as.numeric(first_row), na.rm = TRUE) == -1 &
-                   max(as.numeric(first_row), na.rm = TRUE) == 1) {
-
-          df <- cbind(df[, 1:11],
-                      data.frame(apply(df[, -c(1:11)], 2, function(x) 1 + as.numeric(as.character(x)))))
-
-          # 0, 1, 2 numeric coding
-        } else if (min(as.numeric(first_row), na.rm = TRUE) == 0 &
-                   max(as.numeric(first_row), na.rm = TRUE) == 2) {
-
-          df <- cbind(df[, 1:11],
-                      data.frame(apply(df[, -c(1:11)], 2, function(x) as.numeric(as.character(x)))))
-
-          # something else!
-        } else if(all(first_row %in% double_code)){
-          shinybusy::show_modal_spinner('fading-circle', text = 'Converting...')
-          df <- hapMapChar2NumericDouble(df)
-          shinybusy::remove_modal_spinner()
-        }else {
-          shinyWidgets::show_alert(title = 'Error !!', text = 'Not a valid HapMap file format :-(', type = 'error')
-          return(NULL)
-        }
-        return(df)
-
-      }else{
-        return(NULL)
-      }
-
-    })
-
-    output$chrom_summary <- renderTable({
-      if (!is.null(geno_data())) {
-        data.frame(
-          chrom = unique(geno_data()[,'chrom']),
-          min_pos = aggregate(pos ~ chrom, data = geno_data(), FUN = min)[,2],
-          max_pos = aggregate(pos ~ chrom, data = geno_data(), FUN = max)[,2],
-          snps_count = aggregate(pos ~ chrom, data = geno_data(), FUN = length)[,2]
-        )
-      }
-    })
-
-    output$geno_summary <- renderText({
-      temp <- data()
-
-      if (!is.null(geno_data()) & any(temp$metadata$pheno$parameter == 'designation')) {
-        designationColumn <- temp$metadata$pheno[which(temp$metadata$pheno$parameter == "designation"),"value"]
-        paste(
-          "Data Integrity Checks:\n",
-
-          sum(colnames(geno_data()[, -c(1:11)]) %in% unique(temp$data$pheno[, designationColumn ])),
-          "Accessions exist in both phenotypic and genotypic files (will be used to train the model)\n",
-
-          sum(!colnames(geno_data()[, -c(1:11)]) %in% unique(temp$data$pheno[, designationColumn ])),
-          "Accessions have genotypic data but no phenotypic (will be predicted, add to pheno data file with NA value)\n",
-
-          sum(!unique(temp$data$pheno[, designationColumn ]) %in% colnames(geno_data()[, -c(1:11)])),
-          'Accessions have phenotypic data but no genotypic (will not contribute to the training model)'
-        )
-      }
-    })
-
-    observeEvent(
-      geno_data(),
-      {
-        temp <- data()
-
-        temp$data$geno <- t(as.matrix(geno_data()[, -c(1:11)])) - 1
-        colnames(temp$data$geno) <- geno_data()$`rs#`
-
-        map <- geno_data()[, c('rs#', 'chrom', 'pos', 'alleles', 'alleles')]
-        colnames(map) <- c('marker', 'chr', 'pos', 'refAllele', 'altAllele')
-        map$refAllele <- substr(map$refAllele, 1, 1)
-        map$altAllele <- substr(map$altAllele, 3, 3)
-
-        temp$metadata$geno <- map
-
-        data(temp)
-      }
-    )
-
-    observeEvent(
-      input$geno_example,
-      if(length(input$geno_example) > 0){ # added
-        if (input$geno_example) {
-          updateSelectInput(session, 'geno_input', selected = 'url')
-
-          geno_example_url <-  paste0(session$clientData$url_protocol, '//',
-                                      session$clientData$url_hostname, ':',
-                                      session$clientData$url_port,
-                                      session$clientData$url_pathname,
-                                      geno_example)
-
-          updateTextInput(session, 'geno_url', value = geno_example_url)
-
-          golem::invoke_js('hideid', ns('geno_file_holder'))
-          golem::invoke_js('showid', ns('geno_url'))
-        } else {
-          updateSelectInput(session, 'geno_input', selected = 'file')
-          updateTextInput(session, 'geno_url', value = '')
-
-          golem::invoke_js('showid', ns('geno_file_holder'))
-          golem::invoke_js('hideid', ns('geno_url'))
-        }
-      }
-    )
+### Genotypic tab controls #################################################
+#
+#     observeEvent(
+#       input$geno_input,
+#       if(length(input$geno_input) > 0){ # added
+#         if (input$geno_input %in% c('file', 'vcf.file')) {
+#           golem::invoke_js('showid', ns('geno_file_holder'))
+#           golem::invoke_js('hideid', ns('geno_url'))
+#           golem::invoke_js('hideid', ns('geno_table_mapping'))
+#           golem::invoke_js('hideid', ns('geno_table_options'))
+#           updateCheckboxInput(session, 'geno_example', value = FALSE)
+#         } else if (input$geno_input %in% c('url', 'vcf.url')) {
+#           golem::invoke_js('hideid', ns('geno_file_holder'))
+#           golem::invoke_js('hideid', ns('geno_table_mapping'))
+#           golem::invoke_js('hideid', ns('geno_table_options'))
+#           golem::invoke_js('showid', ns('geno_url'))
+#         } else if (input$geno_input == 'matfile' ){
+#           golem::invoke_js('showid', ns('geno_file_holder'))
+#           golem::invoke_js('showid', ns('geno_table_mapping'))
+#           golem::invoke_js('showid', ns('geno_table_options'))
+#           golem::invoke_js('hideid', ns('geno_url'))
+#           updateCheckboxInput(session, 'geno_example', value = FALSE)
+#         } else if (input$geno_input == 'matfileurl' ){
+#           golem::invoke_js('hideid', ns('geno_file_holder'))
+#           golem::invoke_js('showid', ns('geno_table_mapping'))
+#           golem::invoke_js('showid', ns('geno_table_options'))
+#           golem::invoke_js('showid', ns('geno_url'))
+#         }
+#       }
+#     )
+#
+#     geno_data_table = reactive({ # function to purely just read a csv when we need to match the genotype file
+#       if(length(input$geno_input) > 0){ # added
+#         if (input$geno_input == 'matfile' ) {
+#           if (is.null(input$geno_file)) {return(NULL)}else{
+#             snps_file <- input$geno_file$datapath
+#           }
+#         } else if(input$geno_input == 'matfileurl'){
+#           if (is.null(input$geno_file)) {return(NULL)}else{
+#             snps_file <- input$geno_url
+#           }
+#         }else {
+#           return(NULL);
+#         }
+#         shinybusy::show_modal_spinner('fading-circle', text = 'Loading...')
+#         df <- as.data.frame(data.table::fread(snps_file, sep = input$geno_sep, quote = input$geno_quote, dec = input$geno_dec, header = TRUE))
+#         shinybusy::remove_modal_spinner()
+#         return(df)
+#       }else{
+#         return(NULL)
+#       }
+#     })
+#
+#     observeEvent(c(geno_data_table()), { # update values for columns in designation and first snp and last snp
+#       req(geno_data_table())
+#       provGeno <- geno_data_table()
+#       output$preview_geno <- DT::renderDT({
+#         req(geno_data_table())
+#         DT::datatable(geno_data_table()[,1:min(c(50,ncol(geno_data_table())))],
+#                       extensions = 'Buttons',
+#                       options = list(dom = 'Blfrtip',scrollX = TRUE,buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),lengthMenu = list(c(5,20,50,-1), c(5,20,50,'All')))
+#         )
+#       })
+#       updateSelectizeInput(session, "geno_table_firstsnp", choices = colnames(provGeno)[1:min(c(ncol(provGeno),100))], selected = character(0))
+#       updateSelectizeInput(session, "geno_table_lastsnp", choices = colnames(provGeno)[max(c(1,ncol(provGeno)-100)):ncol(provGeno)], selected = character(0))
+#       updateSelectizeInput(session, "geno_table_designation", choices = colnames(provGeno)[1:min(c(ncol(provGeno),100))], selected = character(0))
+#     })
+#
+#     observeEvent( # reactive for the csv geno read, active once the user has selected the proper columns
+#       c(geno_data_table(), input$geno_table_firstsnp, input$geno_table_lastsnp, input$geno_table_designation),
+#       {
+#         req(geno_data_table())
+#         req(input$geno_table_firstsnp)
+#         req(input$geno_table_lastsnp)
+#         req(input$geno_table_designation)
+#         if(!is.null(input$geno_table_firstsnp) & !is.null(input$geno_table_lastsnp) & !is.null(input$geno_table_designation) ){
+#           temp <- data()
+#           tempG <- geno_data_table()
+#           rownames(tempG) <- tempG[,which(colnames(tempG)==input$geno_table_designation)]
+#           tempG <- tempG[,which(colnames(tempG)==input$geno_table_firstsnp):which(colnames(tempG)==input$geno_table_lastsnp)]
+#           missingData=c("NN","FAIL","FAILED","Uncallable","Unused","NA","")
+#           for(iMiss in missingData){tempG[which(tempG==iMiss, arr.ind = TRUE)] <- NA}
+#           shinybusy::show_modal_spinner('fading-circle', text = 'Converting...')
+#           tempG <- sommer::atcg1234(tempG, maf = -1, imp = FALSE)
+#           shinybusy::remove_modal_spinner()
+#           temp$data$geno <- tempG$M
+#           refAlleles <- tempG$ref.alleles
+#           map <- data.frame(a=colnames(tempG$M), chrom=1, pos=1:ncol(tempG$M))
+#           map$refAllele <- tempG$ref.alleles[2,]
+#           map$altAllele <- tempG$ref.alleles[1,]
+#           colnames(map) <- c('marker', 'chr', 'pos', 'refAllele', 'altAllele')
+#           temp$metadata$geno <- map
+#           data(temp)
+#         }else{return(NULL)}
+#       }
+#     )
+#
+#     geno_data <- reactive({
+#       if(length(input$geno_input) > 0){ # added
+#         if (input$geno_input %in% c('file', 'vcf.file')) {
+#           if (is.null(input$geno_file)) {return(NULL)}else{
+#             snps_file <- input$geno_file$datapath
+#           }
+#         } else if (input$geno_input %in% c('url', 'vcf.url')) {
+#           if (input$geno_url == '') {return(NULL)}else{
+#             snps_file <- input$geno_url
+#           }
+#         } else {
+#           return(NULL)
+#         }
+#
+#         # library(vcfR); vcf_data <- vcfR::read.vcfR(snps_file); hmp_data <- vcfR::vcfR2hapmap(vcf.data)
+#
+#         shinybusy::show_modal_spinner('fading-circle', text = 'Loading...')
+#         if (input$geno_input %in% c('file', 'url')) {
+#           df <- as.data.frame(data.table::fread(snps_file, sep = '\t', header = TRUE))
+#
+#         } else if (input$geno_input %in% c('vcf.file', 'vcf.url')) {
+#           vcf.data  <- vcfR::read.vcfR(snps_file)
+#
+#           df <- vcfR::vcfR2hapmap(vcf.data)
+#           df <- df[-1,]
+#
+#           rm(vcf.data)
+#         }
+#
+#         shinybusy::remove_modal_spinner()
+#
+#         hapmap_snp_attr <- c('rs#', 'alleles', 'chrom', 'pos', 'strand', 'assembly#',
+#                              'center', 'protLSID', 'assayLSID', 'panelLSID', 'QCcode',
+#                              'rs', 'assembly','panel' # column versions of vcfR
+#         )
+#         if(length(intersect(hapmap_snp_attr, colnames(df)[1:11])) != 11){
+#           # if (!all(colnames(df)[1:11] == hapmap_snp_attr)) {
+#           shinyWidgets::show_alert(title = 'Error !!', text = 'Not a valid HapMap file format :-(', type = 'error')
+#           return(NULL)
+#         }
+#         colnames(df)[1:11] <- hapmap_snp_attr[1:11]
+#         first_row   <- df[1, -c(1:11)]
+#         valid_IUPAC <- c('A', 'C', 'G', 'T', 'U', 'W', 'S', 'M', 'K', 'R', 'Y', 'B', 'D', 'H', 'V', 'N')
+#         double_code <- c("AA","TT","CC","GG","AT","TA","AC","CA","AG","GA","TC","CT","TG","GT","CG","GC","NN")
+#         # IUPAC single-letter code
+#         if (all(first_row %in% valid_IUPAC)) {
+#
+#           shinybusy::show_modal_spinner('fading-circle', text = 'Converting...')
+#           df <- hapMapChar2Numeric(df)
+#           shinybusy::remove_modal_spinner()
+#
+#           # -1, 0, 1 numeric coding
+#         } else if (min(as.numeric(first_row), na.rm = TRUE) == -1 &
+#                    max(as.numeric(first_row), na.rm = TRUE) == 1) {
+#
+#           df <- cbind(df[, 1:11],
+#                       data.frame(apply(df[, -c(1:11)], 2, function(x) 1 + as.numeric(as.character(x)))))
+#
+#           # 0, 1, 2 numeric coding
+#         } else if (min(as.numeric(first_row), na.rm = TRUE) == 0 &
+#                    max(as.numeric(first_row), na.rm = TRUE) == 2) {
+#
+#           df <- cbind(df[, 1:11],
+#                       data.frame(apply(df[, -c(1:11)], 2, function(x) as.numeric(as.character(x)))))
+#
+#           # something else!
+#         } else if(all(first_row %in% double_code)){
+#           shinybusy::show_modal_spinner('fading-circle', text = 'Converting...')
+#           df <- hapMapChar2NumericDouble(df)
+#           shinybusy::remove_modal_spinner()
+#         }else {
+#           shinyWidgets::show_alert(title = 'Error !!', text = 'Not a valid HapMap file format :-(', type = 'error')
+#           return(NULL)
+#         }
+#         return(df)
+#
+#       }else{
+#         return(NULL)
+#       }
+#
+#     })
+#
+#     output$chrom_summary <- renderTable({
+#       if (!is.null(geno_data())) {
+#         data.frame(
+#           chrom = unique(geno_data()[,'chrom']),
+#           min_pos = aggregate(pos ~ chrom, data = geno_data(), FUN = min)[,2],
+#           max_pos = aggregate(pos ~ chrom, data = geno_data(), FUN = max)[,2],
+#           snps_count = aggregate(pos ~ chrom, data = geno_data(), FUN = length)[,2]
+#         )
+#       }
+#     })
+#
+#     output$geno_summary <- renderText({
+#       temp <- data()
+#
+#       if (!is.null(geno_data()) & any(temp$metadata$pheno$parameter == 'designation')) {
+#         designationColumn <- temp$metadata$pheno[which(temp$metadata$pheno$parameter == "designation"),"value"]
+#         paste(
+#           "Data Integrity Checks:\n",
+#
+#           sum(colnames(geno_data()[, -c(1:11)]) %in% unique(temp$data$pheno[, designationColumn ])),
+#           "Accessions exist in both phenotypic and genotypic files (will be used to train the model)\n",
+#
+#           sum(!colnames(geno_data()[, -c(1:11)]) %in% unique(temp$data$pheno[, designationColumn ])),
+#           "Accessions have genotypic data but no phenotypic (will be predicted, add to pheno data file with NA value)\n",
+#
+#           sum(!unique(temp$data$pheno[, designationColumn ]) %in% colnames(geno_data()[, -c(1:11)])),
+#           'Accessions have phenotypic data but no genotypic (will not contribute to the training model)'
+#         )
+#       }
+#     })
+#
+#     observeEvent(
+#       geno_data(),
+#       {
+#         temp <- data()
+#
+#         temp$data$geno <- t(as.matrix(geno_data()[, -c(1:11)])) - 1
+#         colnames(temp$data$geno) <- geno_data()$`rs#`
+#
+#         map <- geno_data()[, c('rs#', 'chrom', 'pos', 'alleles', 'alleles')]
+#         colnames(map) <- c('marker', 'chr', 'pos', 'refAllele', 'altAllele')
+#         map$refAllele <- substr(map$refAllele, 1, 1)
+#         map$altAllele <- substr(map$altAllele, 3, 3)
+#
+#         temp$metadata$geno <- map
+#
+#         data(temp)
+#       }
+#     )
+#
+#     observeEvent(
+#       input$geno_example,
+#       if(length(input$geno_example) > 0){ # added
+#         if (input$geno_example) {
+#           updateSelectInput(session, 'geno_input', selected = 'url')
+#
+#           geno_example_url <-  paste0(session$clientData$url_protocol, '//',
+#                                       session$clientData$url_hostname, ':',
+#                                       session$clientData$url_port,
+#                                       session$clientData$url_pathname,
+#                                       geno_example)
+#
+#           updateTextInput(session, 'geno_url', value = geno_example_url)
+#
+#           golem::invoke_js('hideid', ns('geno_file_holder'))
+#           golem::invoke_js('showid', ns('geno_url'))
+#         } else {
+#           updateSelectInput(session, 'geno_input', selected = 'file')
+#           updateTextInput(session, 'geno_url', value = '')
+#
+#           golem::invoke_js('showid', ns('geno_file_holder'))
+#           golem::invoke_js('hideid', ns('geno_url'))
+#         }
+#       }
+#     )
 
     ### Pedigree tab controls ##################################################
 

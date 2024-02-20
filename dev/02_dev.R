@@ -47,10 +47,14 @@
 # usethis::use_package("kableExtra")
 # usethis::use_package("ggplot2")
 # usethis::use_package("stringi")
+# usethis::use_package("adegenet")
+# usethis::use_package("dartR")
+# usethis::use_package("SNPRelate")
 # # usethis::use_package("tidyverse")
 # usethis::use_pipe()
 # usethis::use_dev_package("cgiarBase", type = "Imports", remote = "Breeding-Analytics/cgiarBase")
 # usethis::use_dev_package("cgiarPipeline", type = "Imports", remote = "Breeding-Analytics/cgiarPipeline")
+# usethis::use_dev_package("cgiarGenomics", type = "Imports", remote = "Breeding-Analytics/cgiarGenomics")
 # usethis::use_dev_package("cgiarOcs", type = "Imports", remote = "Breeding-Analytics/cgiarOcs")
 #
 # # https://icarda-git.github.io/QBMS/#boosting-big-queries-performance
@@ -63,6 +67,7 @@
 #
 # # remotes::install_github("Breeding-Analytics/cgiarBase")
 # # remotes::install_github("Breeding-Analytics/cgiarPipeline")
+# # remotes::install_github("Breeding-Analytics/cgiarGenomics")
 # # remotes::install_github("Breeding-Analytics/cgiarOcs")
 # # remotes::install_github("r-lib/async")
 # # remotes::install_github("icarda-git/QBMS")
