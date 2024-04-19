@@ -175,6 +175,8 @@ mod_getDataGeno_server <- function(id, data = NULL, res_auth=NULL){
           golem::invoke_js('showid', ns('geno_table_options'))
           golem::invoke_js('showid', ns('geno_url'))
         }
+      } else {
+        print('false')
       }
     )
 
