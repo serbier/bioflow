@@ -223,7 +223,17 @@ mod_getDataGenoAde_server <-
         )
 
       })
-
+      observeEvent(
+        geno_data(),
+        {
+          temp <- data()
+          gd <- geno_data()
+          temp$data$geno <- gd$geno
+          temp$data$genodir<-input$adegeno_file
+          temp$metadata$geno <- gd$meta
+          data(temp)
+        }
+      )
     })
   }
 

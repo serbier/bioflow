@@ -35,6 +35,7 @@ app_server <- function(input, output, session) {
   ## QUALITY ASSURANCE tabs
   mod_qaRawApp_server("qaRawApp_1", data = data)
   mod_qaGenoApp_server("qaGenoApp_1",data = data)
+  mod_qaGenoAdeApp_server("qaGenoAdeApp_1",data = data)
   mod_qaPedApp_server("qaPedApp_1",data = data)
 
   ## DATA TRANSFORMATIONS
