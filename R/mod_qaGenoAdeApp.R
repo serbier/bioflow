@@ -39,20 +39,35 @@ mod_qaGenoAdeApp_ui <- function(id){
                           ),
                    column(width = 4,
                           titlePanel("Filtering Parameters"),
-                                     tabsetPanel(id = "filt_params",type = "tabs",
-                                       tabPanel("By locus",
-                                                uiOutput(ns("by_locus_filter_params"))
-                                                ),
-                                       tabPanel("By individual",
-                                                uiOutput(ns("by_ind_filter_params"))
-                                                )),
+                            h4("By locus"),
+                            uiOutput(ns("by_locus_filter_params")),
+                            br(),
+                            h4("By individual"),
+                            uiOutput(ns("by_ind_filter_params")),
                           actionButton(inputId = ns('filter_btn'), "Filter")
 
                           ),
                  fluidRow(
                    column(width = 8,
                           titlePanel("Plots"),
-                          uiOutput(ns("dist_params"))),
+                          tabsetPanel(id = "filt_distributions", type = "tabs",
+                            tabPanel("Missing by locus",
+                                     plotly::plotlyOutput(ns("dist_miss_loc"))
+                                     ),
+                            tabPanel("Missing by individual",
+                                     plotly::plotlyOutput(ns("dist_miss_ind"))
+                            ),
+                            tabPanel("Heterozygosity by locus",
+                                     plotly::plotlyOutput(ns("dist_ho_loc"))
+                            ),
+                            tabPanel("Heterozygosity by individual",
+                                     plotly::plotlyOutput(ns("dist_ho_ind"))
+                            ),
+                            tabPanel("MAF",
+                                     plotly::plotlyOutput(ns("dist_MAF"))
+                            ),
+                          ),
+                          ),
                    column(width = 4,
                           titlePanel("Preview"),
                           verbatimTextOutput(ns('log_filt')))
@@ -98,13 +113,44 @@ mod_qaGenoAdeApp_server <- function(id, data){
 
         shinybusy::show_modal_spinner('fading-circle', text = 'Initializating filtering stats...')
         # get min and max values of sliders
-        prop_typed_loc <- adegenet::propTyped(geno_data$geno, by = 'loc')
-        prop_typed_ind <- adegenet::propTyped(geno_data$geno, by = 'ind')
-        maf <- adegenet::minorAllele(geno_data$geno)
+        loc_missing <- cgiarGenomics::get_loc_missing(geno_data)
+        ind_missing <- cgiarGenomics::get_ind_missing(geno_data)
+        loc_he <- cgiarGenomics::get_loc_het(geno_data)
+        ind_he <-cgiarGenomics::get_ind_het(geno_data)
+        maf <- cgiarGenomics::get_maf(geno_data)
 
-        baseline <- list(miss_loc = prop_typed_loc,
-                         miss_ind = prop_typed_ind,
+
+        baseline <- list(loc_missing = loc_missing,
+                         ind_missing = ind_missing,
+                         loc_he = loc_he,
+                         ind_he = ind_he,
                          maf = maf)
+
+        output$dist_miss_loc <- plotly::renderPlotly({
+          fig <- plotly::plot_ly(alpha = 0.6)
+          fig <- fig %>% plotly::add_histogram(x = baseline$loc_missing, histnorm = "probability", name="Missing data by locus" )
+        })
+
+        output$dist_miss_ind <- plotly::renderPlotly({
+          fig <- plotly::plot_ly(alpha = 0.6)
+          fig <- fig %>% plotly::add_histogram(x = baseline$ind_missing, histnorm = "probability", name="Missing data by indivudual" )
+        })
+
+        output$dist_ho_loc <- plotly::renderPlotly({
+          fig <- plotly::plot_ly(alpha = 0.6)
+          fig <- fig %>% plotly::add_histogram(x = baseline$loc_he, histnorm = "probability", name="Heterozygosity by locus" )
+        })
+
+        output$dist_ho_ind <- plotly::renderPlotly({
+          fig <- plotly::plot_ly(alpha = 0.6)
+          fig <- fig %>% plotly::add_histogram(x = baseline$ind_he, histnorm = "probability", name="Heterozygosity by indivudual" )
+        })
+
+        output$dist_MAF <- plotly::renderPlotly({
+          fig <- plotly::plot_ly(alpha = 0.6)
+          fig <- fig %>% plotly::add_histogram(x = baseline$maf, histnorm = "probability", name="Minor allele frequency" )
+        })
+
         shinybusy::remove_modal_spinner()
         return(baseline)
       }
@@ -123,13 +169,19 @@ mod_qaGenoAdeApp_server <- function(id, data){
         output$by_locus_filter_params <- renderUI( tags$span(
             checkboxInput(ns("mono_check"),
                           "Filter monomorphic:"),
-            sliderInput(ns("miss_marker"),
+            sliderInput(ns("loc_missing"),
                         " Minimum number of genotyped individuals by marker:",
-                        round(min(baseline$miss_loc)*adegenet::nInd(geno_data$geno)),
-                        round(max(baseline$miss_loc)*adegenet::nInd(geno_data$geno)),
+                        round(min(baseline$loc_missing)*adegenet::nInd(geno_data$geno)),
+                        round(max(baseline$loc_missing)*adegenet::nInd(geno_data$geno)),
                         step = 1,
                         value = round(min(baseline$miss_loc)*adegenet::nInd(geno_data$geno))),
-            sliderInput(ns("maf_marker"),
+            sliderInput(ns("loc_he"),
+                        " Minimum heterozygosity by locus:",
+                        round(min(baseline$loc_he),2),
+                        round(max(baseline$loc_he),2),
+                        step = 0.01,
+                        value = round(min(baseline$miss_loc), 2)),
+            sliderInput(ns("maf"),
                         " Minimum minor allele frequency (MAF):",
                         min = 0,
                         max = round(max(baseline$maf),2),
@@ -140,12 +192,18 @@ mod_qaGenoAdeApp_server <- function(id, data){
 
         output$by_ind_filter_params <- renderUI({
           tags$span(
-            sliderInput(ns("miss_ind"),
+            sliderInput(ns("ind_missing"),
                         " Minimum percentage of genotyped loci by individual:",
-                        min(baseline$miss_ind),
-                        max(baseline$miss_ind),
+                        round(min(baseline$ind_missing),2),
+                        round(max(baseline$ind_missing),2),
                         step = 0.01,
-                        value = min(baseline$miss_ind))
+                        value = round(min(baseline$ind_missing), 2)),
+            sliderInput(ns("ind_he"),
+                        " Minimum percentage of heterozygosity by individual:",
+                        round(min(baseline$ind_he), 2),
+                        round(max(baseline$ind_he),2),
+                        step = 0.01,
+                        value = round(min(baseline$ind_he), 2))
           )
         })
     })
@@ -186,25 +244,6 @@ mod_qaGenoAdeApp_server <- function(id, data){
         }
         return(filtered)
       })
-
-    output$dist_params <- renderUI({
-      req(filter_data())
-
-      filter_data <- filter_data()
-      tabsetPanel(id = "filt_params",type = "tabs",
-                  tabPanel("Miss by locus",
-                           renderPlot({cgiarGenomics::plot_missingnes_by_marker(filter_data)})
-                           ),
-                  tabPanel("Miss by MAF",
-                           renderPlot({cgiarGenomics::plot_MAF(filter_data)})
-                           ),
-                  tabPanel("Miss by individual",
-                           renderPlot({cgiarGenomics::plot_overall_missingness(filter_data)})
-                           )
-                  )
-
-    })
-
 
   })
 }

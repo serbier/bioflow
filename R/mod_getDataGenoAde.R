@@ -184,7 +184,7 @@ mod_getDataGenoAde_server <-
                  dartsesnp = {
                    shinybusy::show_modal_spinner('fading-circle', text = 'Loading...')
                    tryCatch({
-                     geno_data = cgiarGenomics::read_DArTSeq_SNP( dart_path = genotype_file,
+                     geno_data = cgiarGenomics::read_DArTSeq_SNP( dart_path = input$genotype_file,
                                                                   snp_id = input$dartseq_markerid,
                                                                   chr_name = input$dartseq_chrom,
                                                                   pos_name = input$dartseq_position)
@@ -197,9 +197,9 @@ mod_getDataGenoAde_server <-
                  darttag = {
                    shinybusy::show_modal_spinner('fading-circle', text = 'Loading...')
                    tryCatch({
-                     geno_data = cgiarGenomics::read_DArT_Tag(counts.file = input$genotype_file,
+                     geno_data = cgiarGenomics::read_DArT_Tag(counts.file = input$genotype_file$datapath,
                                                               dosage.file = input$darttag_dosage_file$datapath,
-                                                              ploidy = input$ploidlvl_input)
+                                                              ploidity = as.numeric(input$ploidlvl_input))
                    }, error = function(e){
                      print(e)
                      shinyWidgets::show_alert(title = 'Error !!', text = 'Not a valid file format :-(', type = 'error')
